@@ -106,16 +106,16 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
         subject.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                if (counter % 2 == 1) {
+                if (counter % 2 == 0) {
                     to.setText("naweinberger@gmail.com");
-                    subject.setText("Secret message");
-                    body.setText("This is a secret message from someone.");
+                    subject.setText("VisionMail is awesome");
+                    body.setText("This is amazing!");
                 }
 
                 else {
                     to.setText("naweinberger@gmail.com");
-                    subject.setText("Anonymous tip");
-                    body.setText("There appears to be a breaking-and-entering occuring right now on the 1000 block of Main Street.");
+                    subject.setText("Super secret message");
+                    body.setText("Don't let anyone else find out!");
                 }
                 counter++;
                 return false;
