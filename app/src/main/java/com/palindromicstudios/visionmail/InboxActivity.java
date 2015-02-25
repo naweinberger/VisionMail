@@ -9,23 +9,12 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.telephony.SmsMessage;
+
 import android.text.format.DateFormat;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.ArrayAdapter;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import com.palindromicstudios.testapplication.R;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -102,10 +91,18 @@ public class InboxActivity extends Activity {
             for (Integer key : keys) {
                 List<Message> tempList = conversations.get(key);
                 Message msg = tempList.get(0);
+                msg.setName(getContactName(this, msg.getPhone()));
                 conversationPreviews.add(msg);
             }
             ConversationsAdapter adapter = new ConversationsAdapter(this, conversationPreviews);
             recyclerView.setAdapter(adapter);
+
+//            for (int key : keys) {
+//                Message first = conversations.get(key).get(0);
+//                first.setName(first.getPhone());
+//            }
+//
+//            adapter.notifyDataSetChanged();
 
 
         } else {

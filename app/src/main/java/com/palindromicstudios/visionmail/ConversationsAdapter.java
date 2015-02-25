@@ -38,7 +38,7 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationHolde
     @Override
     public void onBindViewHolder(ConversationHolder holder, final int position) {
         final Message dItem = items.get(position);
-        holder.name.setText(String.valueOf(dItem.getPhone()));
+        holder.name.setText(String.valueOf(dItem.getName()));
         holder.message.setText(dItem.getContent());
         holder.date.setText(dItem.getDate());
 
