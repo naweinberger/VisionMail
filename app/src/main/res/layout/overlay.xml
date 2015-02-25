@@ -10,22 +10,22 @@
     <Spinner
         android:id="@+id/email_from_spinner"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:visibility="gone"/>
 
-    <EditText
+    <MultiAutoCompleteTextView
         android:id="@+id/email_to_edittext"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="To"
-        android:singleLine="true"
-        android:inputType="textEmailAddress"/>
+        android:hint="To"/>
 
     <EditText
         android:id="@+id/email_subject_edittext"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Subject"
-        android:inputType="textEmailSubject"/>
+        android:inputType="textEmailSubject"
+        android:visibility="gone"/>
 
     <EditText
         android:id="@+id/email_body_edittext"

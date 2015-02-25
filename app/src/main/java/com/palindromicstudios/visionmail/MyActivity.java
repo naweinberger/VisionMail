@@ -2,16 +2,29 @@ package com.palindromicstudios.visionmail;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.Cursor;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.ContactsContract;
+import android.telephony.PhoneNumberUtils;
+import android.telephony.SmsManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Patterns;
@@ -23,9 +36,12 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.MultiAutoCompleteTextView;
+import android.widget.SimpleAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,9 +67,12 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
     TextView textView;
     LinearLayout overlayBackground;
     Spinner from;
-    static EditText to, subject, body;
+    static EditText subject, body;
+    static MultiAutoCompleteTextView to;
     int counter = 0, cameraCounter = 0;
-    ArrayList<String> emails;
+    ArrayList<Map<String, String>> mPeopleList;
+
+    String selectedNumber = "";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -80,47 +99,46 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
         overlayBackground = (LinearLayout) viewControl.findViewById(R.id.overlay_background);
         overlayBackground.getBackground().setAlpha(180);
 
-        from = (Spinner) viewControl.findViewById(R.id.email_from_spinner);
-        to = (EditText) viewControl.findViewById(R.id.email_to_edittext);
+        mPeopleList = new ArrayList<Map<String, String>>();
+
+        to = (MultiAutoCompleteTextView) viewControl.findViewById(R.id.email_to_edittext);
         subject = (EditText) viewControl.findViewById(R.id.email_subject_edittext);
         body = (EditText) viewControl.findViewById(R.id.email_body_edittext);
 
-        emails = new ArrayList<String>();
+        to.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
+        to.setThreshold(1);
 
-        Pattern emailPattern = Patterns.EMAIL_ADDRESS; // API level 8+
-        Account[] accounts = AccountManager.get(this).getAccounts();
-        for (Account account : accounts) {
-            if (emailPattern.matcher(account.name).matches()) {
-                String possibleEmail = account.name;
-                if (!emails.contains(possibleEmail)) {
-                    emails.add(possibleEmail);
-                }
+        PopulatePeopleList();
+
+        SimpleAdapter mAdapter = new SimpleAdapter(this, mPeopleList, R.layout.contact_item_layout,
+                new String[] { "Name", "Phone", "Type" }, new int[] {
+                R.id.name, R.id.phone, R.id.type });
+        to.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
+        to.setAdapter(mAdapter);
+
+
+
+        to.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+
+            public void onItemClick(AdapterView<?> av, View arg1, int index,
+                                    long arg3) {
+                Map<String, String> map = (Map<String, String>) av.getItemAtPosition(index);
+
+                String name  = map.get("Name");
+                String number = map.get("Phone");
+                //mTxtPhoneNo.setText(""+name+"<"+number+">");
+                to.setText(name);
+                selectedNumber = map.get("Phone");
+
             }
-        }
 
-        emails.add("natan.weinberger@mail.mcgill.ca");
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, android.R.id.text1, emails);
-        from.setAdapter(adapter);
 
-        subject.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                if (counter % 2 == 0) {
-                    to.setText("naweinberger@gmail.com");
-                    subject.setText("VisionMail is awesome");
-                    body.setText("This is amazing!");
-                }
-
-                else {
-                    to.setText("naweinberger@gmail.com");
-                    subject.setText("Super secret message");
-                    body.setText("Don't let anyone else find out!");
-                }
-                counter++;
-                return false;
-            }
         });
+
+
+
 
         this.addContentView(viewControl, layoutParamsControl);
 
@@ -191,6 +209,48 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
     }
 
 
+    private void sendText() {
+        String message = this.body.getText().toString();
+
+        String sent = "SMS_SENT";
+
+        PendingIntent sentPI = PendingIntent.getBroadcast(this, 0,
+                new Intent(sent), 0);
+
+        //---when the SMS has been sent---
+        registerReceiver(new BroadcastReceiver(){
+            @Override
+            public void onReceive(Context arg0, Intent arg1) {
+                if(getResultCode() == Activity.RESULT_OK)
+                {
+                    Toast.makeText(getBaseContext(), "SMS sent.",
+                            Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    Toast.makeText(getBaseContext(), "Sending failed.",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        }, new IntentFilter(sent));
+
+        SmsManager sms = SmsManager.getDefault();
+        sms.sendTextMessage(selectedNumber, null, message, sentPI, null);
+
+
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
+
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
@@ -224,25 +284,6 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
         isPreviewing = false;
     }
 
-    private boolean validateInput() {
-        if (isValidEmail(to.getText().toString())) {
-            if (subject.getText().toString().isEmpty() && body.getText().toString().isEmpty()) {
-                Toast.makeText(this, "You haven't entered a message.", Toast.LENGTH_SHORT).show();
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-        else {
-            Toast.makeText(this, "Please make sure that email address is valid.", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-    }
-
-    public final static boolean isValidEmail(CharSequence target) {
-        return !TextUtils.isEmpty(target) && android.util.Patterns.EMAIL_ADDRESS.matcher(target).matches();
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -256,66 +297,107 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.send:
-                if (validateInput()) {
+                //if (validateInput()) {
                     Toast.makeText(this, "Sending message", Toast.LENGTH_SHORT).show();
-                    new MessageTask(emails.get(from.getSelectedItemPosition()), to.getText().toString(), subject.getText().toString(), body.getText().toString()).execute();
-                }
-                else {
+                    //new MessageTask(emails.get(from.getSelectedItemPosition()), to.getText().toString(), subject.getText().toString(), body.getText().toString()).execute();
+                    sendText();
+                //}
+                //else {
 
-                }
+                //}
                 break;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private class MessageTask extends AsyncTask<Void, Void, String> {
-        String from, to, subject, body;
-        public MessageTask(String from, String to, String subject, String body) {
-            this.from = from;
-            this.to = to;
-            this.subject = subject;
-            this.body = body;
+    public void PopulatePeopleList() {
+        mPeopleList.clear();
+        Cursor people = getContentResolver().query(
+                ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
+        while (people.moveToNext()) {
+            String contactName = people.getString(people
+                    .getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+            String contactId = people.getString(people
+                    .getColumnIndex(ContactsContract.Contacts._ID));
+            String hasPhone = people
+                    .getString(people
+                            .getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER));
+
+            if ((Integer.parseInt(hasPhone) > 0)){
+                // You know have the number so now query it like this
+                Cursor phones = getContentResolver().query(
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                        null,
+                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID +" = "+ contactId,
+                        null, null);
+                while (phones.moveToNext()){
+                    //store numbers and display a dialog letting the user select which.
+                    String phoneNumber = phones.getString(
+                            phones.getColumnIndex(
+                                    ContactsContract.CommonDataKinds.Phone.NUMBER));
+                    String numberType = phones.getString(phones.getColumnIndex(
+                            ContactsContract.CommonDataKinds.Phone.TYPE));
+                    Map<String, String> NamePhoneType = new HashMap<String, String>();
+                    NamePhoneType.put("Name", contactName);
+                    NamePhoneType.put("Phone", formatPhoneNumber(phoneNumber));
+                    if(numberType.equals("0"))
+                        NamePhoneType.put("Type", "Work");
+                    else
+                    if(numberType.equals("1"))
+                        NamePhoneType.put("Type", "Home");
+                    else if(numberType.equals("2"))
+                        NamePhoneType.put("Type",  "Mobile");
+                    else
+                        NamePhoneType.put("Type", "Other");
+                    //Then add this map to the list.
+                    mPeopleList.add(NamePhoneType);
+                }
+                //phones.close();
+            }
+        }
+        //people.close();
+        startManagingCursor(people);
+    }
+
+    private String formatPhoneNumber(String number) {
+        if (number.substring(0, 2).equals("+1")) number = number.substring(2);
+//        number = number.replace("-", "");
+//        number = number.replace("(", "");
+        number.replaceAll("[-()]", "");
+
+        if (number.length() == 10) {
+            return "(" + number.substring(0, 3) + ") " + number.substring(3, 6) + "-" + number.substring(6);
+        }
+        else return number;
+    }
+
+
+    private class Contact {
+        String name, phone;
+
+        public Contact(String name, String phone) {
+            this.name = name;
+            this.phone = phone;
         }
 
-        @Override
-        protected String doInBackground(Void... params) {
-            HttpClient httpclient = new DefaultHttpClient();
-            // specify the URL you want to post to
-            HttpPost httppost = new HttpPost("http://palindromicstudios.com/mailjet-apiv3-php-simple/mailjetapi.php");
-            try {
-                // create a list to store HTTP variables and their values
-                List nameValuePairs = new ArrayList();
-                // add an HTTP variable and value pair
-                nameValuePairs.add(new BasicNameValuePair("from", from));
-                nameValuePairs.add(new BasicNameValuePair("to", to));
-                nameValuePairs.add(new BasicNameValuePair("subject", subject));
-                nameValuePairs.add(new BasicNameValuePair("body", body));
-                httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-                // send the variable and value, in other words post, to the URL
-                HttpResponse response = httpclient.execute(httppost);
-                return EntityUtils.toString(response.getEntity());
-            } catch (ClientProtocolException e) {
-                // process execption
-            } catch (IOException e) {
-                // process execption
-            }
-            return null;
+        public String getName() {
+            return name;
         }
 
-        @Override
-        protected void onPostExecute(String result) {
-            super.onPostExecute(result);
+        public void setName(String name) {
+            this.name = name;
+        }
 
-            Log.e("MyActivity", result);
-            if (result.equals("0")) {
-                Toast.makeText(getApplicationContext(), "Message sent.", Toast.LENGTH_SHORT).show();
-                MyActivity.to.setText("");
-                MyActivity.subject.setText("");
-                MyActivity.body.setText("");
-            }
-            else {
-                Toast.makeText(getApplicationContext(), "An error occurred.", Toast.LENGTH_SHORT).show();
-            }
+        public String getPhone() {
+            return phone;
+        }
+
+        public void setPhone(String phone) {
+            this.phone = phone;
+        }
+
+        public String toString() {
+            return getName() + " (" + getPhone() + ")";
         }
     }
 
