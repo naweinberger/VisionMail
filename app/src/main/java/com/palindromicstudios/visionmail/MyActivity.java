@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.Fragment;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -39,6 +40,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.MultiAutoCompleteTextView;
 import android.widget.SimpleAdapter;
@@ -65,7 +67,7 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
     boolean isPreviewing = false, cameraActive = true;
     LayoutInflater controlInflater = null;
     TextView textView;
-    LinearLayout overlayBackground;
+    FrameLayout overlayBackground;
     Spinner from;
     static EditText subject, body;
     static MultiAutoCompleteTextView to;
@@ -88,59 +90,57 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
 
 
 
-        controlInflater = LayoutInflater.from(getBaseContext());
-        View viewControl = controlInflater.inflate(R.layout.overlay, null);
-        LayoutParams layoutParamsControl
-                = new LayoutParams(LayoutParams.FILL_PARENT,
-                LayoutParams.FILL_PARENT);
+//        controlInflater = LayoutInflater.from(getBaseContext());
+        //View viewControl = controlInflater.inflate(R.layout.overlay_fragments, null);
+        //LayoutParams layoutParamsControl = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT);
 //        textView = (TextView) viewControl.findViewById(R.id.textview);
 //        textView.setText("Messages");
 
-        overlayBackground = (LinearLayout) viewControl.findViewById(R.id.overlay_background);
-        overlayBackground.getBackground().setAlpha(180);
+        //overlayBackground = (FrameLayout) viewControl.findViewById(R.id.overlay_container);
+
+        getFragmentManager().beginTransaction().add(R.id.container, new InboxFragment()).commit();
+        //FrameLayout container = (FrameLayout) findViewById(R.id.container);
+        //container.setAlpha(128);
+        //overlayBackground.getBackground().setAlpha(180);
 
         mPeopleList = new ArrayList<Map<String, String>>();
 
-        to = (MultiAutoCompleteTextView) viewControl.findViewById(R.id.email_to_edittext);
-        subject = (EditText) viewControl.findViewById(R.id.email_subject_edittext);
-        body = (EditText) viewControl.findViewById(R.id.email_body_edittext);
-
-        to.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
-        to.setThreshold(1);
-
-        PopulatePeopleList();
-
-        SimpleAdapter mAdapter = new SimpleAdapter(this, mPeopleList, R.layout.contact_item_layout,
-                new String[] { "Name", "Phone", "Type" }, new int[] {
-                R.id.name, R.id.phone, R.id.type });
-        to.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
-        to.setAdapter(mAdapter);
-
-
-
-        to.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-
-            public void onItemClick(AdapterView<?> av, View arg1, int index,
-                                    long arg3) {
-                Map<String, String> map = (Map<String, String>) av.getItemAtPosition(index);
-
-                String name  = map.get("Name");
-                String number = map.get("Phone");
-                //mTxtPhoneNo.setText(""+name+"<"+number+">");
-                to.setText(name);
-                selectedNumber = map.get("Phone");
-
-            }
-
-
-
-        });
+//        to.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
+//        to.setThreshold(1);
+//
+//        PopulatePeopleList();
+//
+//        SimpleAdapter mAdapter = new SimpleAdapter(this, mPeopleList, R.layout.contact_item_layout,
+//                new String[] { "Name", "Phone", "Type" }, new int[] {
+//                R.id.name, R.id.phone, R.id.type });
+//        to.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
+//        to.setAdapter(mAdapter);
+//
+//
+//
+//        to.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//
+//
+//            public void onItemClick(AdapterView<?> av, View arg1, int index,
+//                                    long arg3) {
+//                Map<String, String> map = (Map<String, String>) av.getItemAtPosition(index);
+//
+//                String name  = map.get("Name");
+//                String number = map.get("Phone");
+//                //mTxtPhoneNo.setText(""+name+"<"+number+">");
+//                to.setText(name);
+//                selectedNumber = map.get("Phone");
+//
+//            }
+//
+//
+//
+//        });
 
 
 
 
-        this.addContentView(viewControl, layoutParamsControl);
+        //this.addContentView(viewControl, layoutParamsControl);
 
         surfaceView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -238,6 +238,18 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
         sms.sendTextMessage(selectedNumber, null, message, sentPI, null);
 
 
+    }
+
+    public void replaceFragment(Fragment fragment) {
+        replaceFragment(fragment, false);
+    }
+    public void replaceFragment(Fragment fragment, boolean addToBackstack) {
+        if (addToBackstack) {
+            getFragmentManager().beginTransaction().add(R.id.container, fragment).addToBackStack(null).commit();
+        }
+        else {
+            getFragmentManager().beginTransaction().add(R.id.container, fragment).commit();
+        }
     }
 
     @Override

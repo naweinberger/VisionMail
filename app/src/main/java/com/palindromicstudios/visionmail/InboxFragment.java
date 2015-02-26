@@ -1,17 +1,20 @@
 package com.palindromicstudios.visionmail;
 
-import android.app.Activity;
-import android.content.ContentResolver;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.app.Fragment;
 import android.provider.ContactsContract;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import com.palindromicstudios.testapplication.R;
 
@@ -21,35 +24,44 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-import javax.security.auth.login.LoginException;
 
 /**
- * Created by Natan on 2/24/2015.
+ * A simple {@link Fragment} subclass.
  */
-public class InboxActivity extends Activity {
-    HashMap<Integer, ArrayList<Message>> conversations;
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_inbox);
+public class InboxFragment extends Fragment {
 
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+    HashMap<Integer, ArrayList<Message>> conversations;
+    FrameLayout container;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        View view = inflater.inflate(R.layout.fragment_inbox, container, false);
+
+        this.container = (FrameLayout) view.findViewById(R.id.inbox_container);
+
+        setAlpha(0.2f);
+
+        RecyclerView recyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(layoutManager);
 
-        List<String> old = new ArrayList<String>();
+        //A hashmap that stores each conversation thread according to a thread id
         conversations = new HashMap<Integer, ArrayList<Message>>();
+
+        //A list containing all of the thread ids for iterating through the hashmap later
         List<Integer> keys = new ArrayList<Integer>();
 
-        Cursor cursor = getContentResolver().query(Uri.parse("content://sms"), null, null, null, null);
+        //Get all messages
+        Cursor cursor = getActivity().getContentResolver().query(Uri.parse("content://sms"), null, null, null, null);
 
         if (cursor.moveToFirst()) { // must check the result to prevent exception
             do {
                 String msgData = "";
+                //This is the thread id
                 Integer key = 0;
-                HashMap<String, String> messageInfo = new HashMap<String, String>();
-                Message message = null;
-                message = new Message();
+                Message message = new Message();
                 message.setContent(cursor.getString(cursor.getColumnIndexOrThrow("body")));
                 message.setPerson(cursor.getInt(cursor.getColumnIndexOrThrow("person")));
                 message.setPhone(cursor.getString(cursor.getColumnIndexOrThrow("address")));
@@ -91,11 +103,11 @@ public class InboxActivity extends Activity {
             for (Integer key : keys) {
                 List<Message> tempList = conversations.get(key);
                 Message msg = tempList.get(0);
-                msg.setName(getContactName(this, msg.getPhone()));
+                msg.setName(getContactName(getActivity(), msg.getPhone()));
                 conversationPreviews.add(msg);
             }
-            //ConversationsAdapter adapter = new ConversationsAdapter(this, conversationPreviews);
-            //recyclerView.setAdapter(adapter);
+            ConversationsAdapter adapter = new ConversationsAdapter(this, conversationPreviews);
+            recyclerView.setAdapter(adapter);
 
 //            for (int key : keys) {
 //                Message first = conversations.get(key).get(0);
@@ -108,6 +120,8 @@ public class InboxActivity extends Activity {
         } else {
             // empty box, no SMS
         }
+
+        return view;
     }
 
     public String getContactName(Context context, String phoneNumber) {
@@ -133,4 +147,9 @@ public class InboxActivity extends Activity {
         String date = DateFormat.format("MMM d", cal).toString();
         return date;
     }
+
+    public void setAlpha(float alpha) {
+        this.container.setAlpha(alpha);
+    }
+
 }

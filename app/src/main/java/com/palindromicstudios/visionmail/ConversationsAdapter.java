@@ -2,6 +2,7 @@ package com.palindromicstudios.visionmail;
 
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -11,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -21,13 +23,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ConversationsAdapter extends RecyclerView.Adapter<ConversationHolder> {
-    private Activity activity;
+    private Fragment fragment;
     private List<Message> items;
     private int lastPosition = -1;
 
-    public ConversationsAdapter(Activity activity, List<Message> items) {
+    public ConversationsAdapter(Fragment fragment, List<Message> items) {
         this.items = items;
-        this.activity = activity;
+        this.fragment = fragment;
     }
 
     @Override
@@ -38,7 +40,12 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationHolde
     @Override
     public void onBindViewHolder(ConversationHolder holder, final int position) {
         final Message dItem = items.get(position);
-        holder.name.setText(String.valueOf(dItem.getName()));
+        if (!dItem.getName().isEmpty()) {
+            holder.name.setText(dItem.getName());
+        }
+        else {
+            holder.name.setText(dItem.getPhone());
+        }
         holder.message.setText(dItem.getContent());
         holder.date.setText(dItem.getDate());
 
@@ -52,12 +59,12 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationHolde
         holder.container.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ArrayList<Message> messages = ((InboxActivity)activity).conversations.get(dItem.getThread());
+                ArrayList<Message> messages = ((InboxFragment)fragment).conversations.get(dItem.getThread());
                 Bundle bundle = new Bundle();
                 bundle.putParcelableArrayList("messages", messages);
-                Intent intent = new Intent(activity, ConversationActivity.class);
+                Intent intent = new Intent(fragment.getActivity(), ConversationActivity.class);
                 intent.putExtra("messages", bundle);
-                activity.startActivity(intent);
+                fragment.getActivity().startActivity(intent);
             }
         });
     }
