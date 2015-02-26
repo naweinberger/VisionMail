@@ -3,4 +3,7 @@
     <color name="white">#ffffffff</color>
     <color name="light_transparent_white">#99ffffff</color>
 
+    <color name="toolbar">#ff44a2ff</color>
+    <color name="colorDark">#ff314591</color>
+
 </resources>

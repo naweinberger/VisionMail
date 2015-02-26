@@ -1,35 +1,29 @@
-package com.palindromicstudios.visionmail;
+package com.palindromicstudios.visionmail.activities;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.Fragment;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.ContactsContract;
-import android.telephony.PhoneNumberUtils;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.Toolbar;
 import android.telephony.SmsManager;
-import android.text.TextUtils;
 import android.util.Log;
-import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -38,32 +32,18 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewGroup.LayoutParams;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import android.widget.MultiAutoCompleteTextView;
 import android.widget.SeekBar;
-import android.widget.SimpleAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.palindromicstudios.testapplication.R;
+import com.palindromicstudios.visionmail.fragments.InboxFragment;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
-
-public class MyActivity extends Activity implements SurfaceHolder.Callback{
+public class MainActivity extends ActionBarActivity implements SurfaceHolder.Callback{
 
     Camera mCamera;
     SurfaceView surfaceView;
@@ -81,12 +61,18 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
 
     String selectedNumber = "";
 
-    float currentAlpha = 0.5f;
+    float currentAlpha;
+
+    final String prefs_tag = "VisionMail";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_my);
+        setContentView(R.layout.activity_main);
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle("VisionMail");
 
         getWindow().setFormat(PixelFormat.UNKNOWN);
         surfaceView = (SurfaceView)findViewById(R.id.surfaceview);
@@ -107,7 +93,9 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
 
         getFragmentManager().beginTransaction().add(R.id.container, new InboxFragment(), "inbox").commit();
         container = (FrameLayout) findViewById(R.id.container);
-        setAlpha(0.5f);
+
+        currentAlpha = getSharedPreferences(prefs_tag, 0).getFloat("alpha_value", 0.8f);
+        setAlpha(currentAlpha);
 
         mPeopleList = new ArrayList<Map<String, String>>();
 
@@ -321,7 +309,7 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
     public boolean onCreateOptionsMenu(Menu menu)
     {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.my, menu);
+        inflater.inflate(R.menu.main, menu);
         return true;
     }
 
@@ -329,17 +317,10 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.send:
-                //if (validateInput()) {
-                    //Toast.makeText(this, "Sending message", Toast.LENGTH_SHORT).show();
-                    //new MessageTask(emails.get(from.getSelectedItemPosition()), to.getText().toString(), subject.getText().toString(), body.getText().toString()).execute();
-                    //sendText();
-                //}
-                //else {
-
-                //}
-                Dialog yourDialog = new Dialog(this);
-                LayoutInflater inflater = (LayoutInflater)this.getSystemService(LAYOUT_INFLATER_SERVICE);
+                Dialog yourDialog = new Dialog(MainActivity.this);
+                LayoutInflater inflater = (LayoutInflater)MainActivity.this.getSystemService(LAYOUT_INFLATER_SERVICE);
                 View layout = inflater.inflate(R.layout.dialog_seekbar, (ViewGroup)findViewById(R.id.dialog_container));
+                yourDialog.setTitle("Adjust transparency");
                 yourDialog.setContentView(layout);
 
                 SeekBar seekBar = (SeekBar)layout.findViewById(R.id.seekbar);
@@ -364,11 +345,22 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
                         setAlpha(trueProgress);
                         currentAlpha = trueProgress;
 
+
                     }
                 };
                 seekBar.setOnSeekBarChangeListener(yourSeekBarListener);
+
+                yourDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        final SharedPreferences.Editor editor = getSharedPreferences(prefs_tag, 0).edit();
+                        editor.putFloat("alpha_value", currentAlpha);
+                        editor.commit();
+                    }
+                });
                 yourDialog.show();
                 break;
+
         }
         return super.onOptionsItemSelected(item);
     }

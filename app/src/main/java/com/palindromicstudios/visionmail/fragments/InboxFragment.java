@@ -1,4 +1,4 @@
-package com.palindromicstudios.visionmail;
+package com.palindromicstudios.visionmail.fragments;
 
 
 import android.content.Context;
@@ -11,12 +11,15 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import com.palindromicstudios.testapplication.R;
+import com.palindromicstudios.visionmail.adapters.ConversationsAdapter;
+import com.palindromicstudios.visionmail.items.Message;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,7 +33,7 @@ import java.util.Locale;
  */
 public class InboxFragment extends Fragment {
 
-    HashMap<Integer, ArrayList<Message>> conversations;
+    public HashMap<Integer, ArrayList<Message>> conversations;
     FrameLayout container;
 
     @Override
@@ -121,6 +124,22 @@ public class InboxFragment extends Fragment {
             // empty box, no SMS
         }
 
+        view.setFocusableInTouchMode(true);
+        view.requestFocus();
+
+        view.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (keyCode == KeyEvent.KEYCODE_BACK) {
+                        getActivity().onBackPressed();
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+
         return view;
     }
 
@@ -138,6 +157,8 @@ public class InboxFragment extends Fragment {
         }
         cur.close();
 
+
+
         return name;
     }
 
@@ -147,9 +168,4 @@ public class InboxFragment extends Fragment {
         String date = DateFormat.format("MMM d", cal).toString();
         return date;
     }
-
-    public void setAlpha(float alpha) {
-        this.container.setAlpha(alpha);
-    }
-
 }

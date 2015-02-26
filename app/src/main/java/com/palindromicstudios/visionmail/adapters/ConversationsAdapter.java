@@ -1,10 +1,7 @@
-package com.palindromicstudios.visionmail;
+package com.palindromicstudios.visionmail.adapters;
 
 
-import android.app.Activity;
 import android.app.Fragment;
-import android.app.FragmentTransaction;
-import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
@@ -13,12 +10,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.FrameLayout;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import com.palindromicstudios.testapplication.R;
+import com.palindromicstudios.visionmail.activities.MainActivity;
+import com.palindromicstudios.visionmail.items.Message;
+import com.palindromicstudios.visionmail.fragments.InboxFragment;
+import com.palindromicstudios.visionmail.fragments.MessageThreadFragment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +62,7 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationHolde
                 bundle.putParcelableArrayList("messages", messages);
                 MessageThreadFragment messageThreadFragment = new MessageThreadFragment();
                 messageThreadFragment.setArguments(bundle);
-                ((MyActivity)fragment.getActivity()).showMessageThread(messageThreadFragment);
+                ((MainActivity)fragment.getActivity()).showMessageThread(messageThreadFragment);
             }
         });
     }

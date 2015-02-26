@@ -1,4 +1,4 @@
-package com.palindromicstudios.visionmail;
+package com.palindromicstudios.visionmail.adapters;
 
 import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
@@ -8,16 +8,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import com.palindromicstudios.testapplication.R;
+import com.palindromicstudios.visionmail.items.Message;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 public class MessagesAdapter extends RecyclerView.Adapter<MessagesHolder> {
     private ArrayList<Message> items;

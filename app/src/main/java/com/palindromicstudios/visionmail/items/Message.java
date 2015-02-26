@@ -1,9 +1,7 @@
-package com.palindromicstudios.visionmail;
+package com.palindromicstudios.visionmail.items;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-
-import java.io.Serializable;
 
 /**
  * Created by Natan on 2/24/2015.

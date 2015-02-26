@@ -8,8 +8,9 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name="com.palindromicstudios.visionmail.MyActivity"
-            android:label="@string/app_name" >
+            android:name="com.palindromicstudios.visionmail.activities.MainActivity"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -18,13 +19,6 @@
 
         </activity>
 
-        <activity
-            android:name="com.palindromicstudios.visionmail.InboxActivity">
-
-
-        </activity>
-
-        <activity android:name="com.palindromicstudios.visionmail.ConversationActivity" />
     </application>
 
     <uses-permission android:name="android.permission.CAMERA"/>
