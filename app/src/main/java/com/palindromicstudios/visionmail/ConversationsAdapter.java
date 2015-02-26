@@ -3,6 +3,7 @@ package com.palindromicstudios.visionmail;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -62,9 +63,9 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationHolde
                 ArrayList<Message> messages = ((InboxFragment)fragment).conversations.get(dItem.getThread());
                 Bundle bundle = new Bundle();
                 bundle.putParcelableArrayList("messages", messages);
-                Intent intent = new Intent(fragment.getActivity(), ConversationActivity.class);
-                intent.putExtra("messages", bundle);
-                fragment.getActivity().startActivity(intent);
+                MessageThreadFragment messageThreadFragment = new MessageThreadFragment();
+                messageThreadFragment.setArguments(bundle);
+                ((MyActivity)fragment.getActivity()).showMessageThread(messageThreadFragment);
             }
         });
     }

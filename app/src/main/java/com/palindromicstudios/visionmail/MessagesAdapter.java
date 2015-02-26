@@ -1,5 +1,6 @@
 package com.palindromicstudios.visionmail;
 
+import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -10,6 +11,8 @@ import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import com.palindromicstudios.testapplication.R;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -41,11 +44,18 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesHolder> {
         }
         holder.name.setText(dItem.getContent());
 
+        if (position % 2 == 0) {
+            holder.container.setBackgroundColor(Color.parseColor("#e4e4e4"));
+        }
+        else {
+            holder.container.setBackgroundColor(Color.parseColor("#ffffff"));
+        }
+
     }
 
     @Override
     public MessagesHolder onCreateViewHolder(ViewGroup viewGroup, int position) {
-        View itemView = LayoutInflater.from(viewGroup.getContext()).inflate(android.R.layout.simple_list_item_1, viewGroup, false);
+        View itemView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.conversation_item_layout, viewGroup, false);
         return new MessagesHolder(itemView);
     }
 

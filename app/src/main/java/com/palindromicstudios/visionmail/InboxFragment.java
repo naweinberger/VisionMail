@@ -41,7 +41,7 @@ public class InboxFragment extends Fragment {
 
         this.container = (FrameLayout) view.findViewById(R.id.inbox_container);
 
-        setAlpha(0.2f);
+        //setAlpha(0.4f);
 
         RecyclerView recyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());

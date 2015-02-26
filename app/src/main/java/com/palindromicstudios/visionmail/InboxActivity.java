@@ -21,8 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-import javax.security.auth.login.LoginException;
-
 /**
  * Created by Natan on 2/24/2015.
  */

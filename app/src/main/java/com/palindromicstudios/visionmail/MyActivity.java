@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.Dialog;
 import android.app.Fragment;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -36,13 +37,16 @@ import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.MultiAutoCompleteTextView;
+import android.widget.SeekBar;
 import android.widget.SimpleAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -73,8 +77,11 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
     static MultiAutoCompleteTextView to;
     int counter = 0, cameraCounter = 0;
     ArrayList<Map<String, String>> mPeopleList;
+    FrameLayout container;
 
     String selectedNumber = "";
+
+    float currentAlpha = 0.5f;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -98,10 +105,9 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
 
         //overlayBackground = (FrameLayout) viewControl.findViewById(R.id.overlay_container);
 
-        getFragmentManager().beginTransaction().add(R.id.container, new InboxFragment()).commit();
-        //FrameLayout container = (FrameLayout) findViewById(R.id.container);
-        //container.setAlpha(128);
-        //overlayBackground.getBackground().setAlpha(180);
+        getFragmentManager().beginTransaction().add(R.id.container, new InboxFragment(), "inbox").commit();
+        container = (FrameLayout) findViewById(R.id.container);
+        setAlpha(0.5f);
 
         mPeopleList = new ArrayList<Map<String, String>>();
 
@@ -240,6 +246,10 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
 
     }
 
+    public void setAlpha(float alpha) {
+        container.setAlpha(alpha);
+    }
+
     public void replaceFragment(Fragment fragment) {
         replaceFragment(fragment, false);
     }
@@ -250,6 +260,16 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
         else {
             getFragmentManager().beginTransaction().add(R.id.container, fragment).commit();
         }
+    }
+
+    public void showMessageThread(Fragment fragment) {
+        getFragmentManager().beginTransaction().hide(getFragmentManager().findFragmentByTag("inbox")).commit();
+        getFragmentManager().beginTransaction().add(R.id.container, fragment, "thread").addToBackStack(null).commit();
+    }
+
+    public void returnToInbox() {
+        getFragmentManager().beginTransaction().remove(getFragmentManager().findFragmentByTag("thread")).commit();
+        getFragmentManager().beginTransaction().show(getFragmentManager().findFragmentByTag("inbox")).commit();
     }
 
     @Override
@@ -310,13 +330,44 @@ public class MyActivity extends Activity implements SurfaceHolder.Callback{
         switch (item.getItemId()) {
             case R.id.send:
                 //if (validateInput()) {
-                    Toast.makeText(this, "Sending message", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(this, "Sending message", Toast.LENGTH_SHORT).show();
                     //new MessageTask(emails.get(from.getSelectedItemPosition()), to.getText().toString(), subject.getText().toString(), body.getText().toString()).execute();
-                    sendText();
+                    //sendText();
                 //}
                 //else {
 
                 //}
+                Dialog yourDialog = new Dialog(this);
+                LayoutInflater inflater = (LayoutInflater)this.getSystemService(LAYOUT_INFLATER_SERVICE);
+                View layout = inflater.inflate(R.layout.dialog_seekbar, (ViewGroup)findViewById(R.id.dialog_container));
+                yourDialog.setContentView(layout);
+
+                SeekBar seekBar = (SeekBar)layout.findViewById(R.id.seekbar);
+
+                seekBar.setMax(100);
+                seekBar.setProgress((int)(currentAlpha*100));
+
+                SeekBar.OnSeekBarChangeListener yourSeekBarListener = new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onStopTrackingTouch(SeekBar seekBar) {
+                        //add code here
+                    }
+
+                    @Override
+                    public void onStartTrackingTouch(SeekBar seekBar) {
+                        //add code here
+                    }
+
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                        float trueProgress= ((float)progress)/100;
+                        setAlpha(trueProgress);
+                        currentAlpha = trueProgress;
+
+                    }
+                };
+                seekBar.setOnSeekBarChangeListener(yourSeekBarListener);
+                yourDialog.show();
                 break;
         }
         return super.onOptionsItemSelected(item);
