@@ -42,6 +42,7 @@ import android.widget.Toast;
 
 import com.palindromicstudios.testapplication.R;
 import com.palindromicstudios.visionmail.fragments.InboxFragment;
+import com.palindromicstudios.visionmail.fragments.MessageThreadFragment;
 
 public class MainActivity extends ActionBarActivity implements SurfaceHolder.Callback{
 
@@ -81,16 +82,6 @@ public class MainActivity extends ActionBarActivity implements SurfaceHolder.Cal
         surfaceHolder.addCallback(this);
         surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-
-
-//        controlInflater = LayoutInflater.from(getBaseContext());
-        //View viewControl = controlInflater.inflate(R.layout.overlay_fragments, null);
-        //LayoutParams layoutParamsControl = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT);
-//        textView = (TextView) viewControl.findViewById(R.id.textview);
-//        textView.setText("Messages");
-
-        //overlayBackground = (FrameLayout) viewControl.findViewById(R.id.overlay_container);
-
         getFragmentManager().beginTransaction().add(R.id.container, new InboxFragment(), "inbox").commit();
         container = (FrameLayout) findViewById(R.id.container);
 
@@ -98,43 +89,6 @@ public class MainActivity extends ActionBarActivity implements SurfaceHolder.Cal
         setAlpha(currentAlpha);
 
         mPeopleList = new ArrayList<Map<String, String>>();
-
-//        to.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
-//        to.setThreshold(1);
-//
-//        PopulatePeopleList();
-//
-//        SimpleAdapter mAdapter = new SimpleAdapter(this, mPeopleList, R.layout.contact_item_layout,
-//                new String[] { "Name", "Phone", "Type" }, new int[] {
-//                R.id.name, R.id.phone, R.id.type });
-//        to.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
-//        to.setAdapter(mAdapter);
-//
-//
-//
-//        to.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//
-//
-//            public void onItemClick(AdapterView<?> av, View arg1, int index,
-//                                    long arg3) {
-//                Map<String, String> map = (Map<String, String>) av.getItemAtPosition(index);
-//
-//                String name  = map.get("Name");
-//                String number = map.get("Phone");
-//                //mTxtPhoneNo.setText(""+name+"<"+number+">");
-//                to.setText(name);
-//                selectedNumber = map.get("Phone");
-//
-//            }
-//
-//
-//
-//        });
-
-
-
-
-        //this.addContentView(viewControl, layoutParamsControl);
 
         surfaceView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -203,36 +157,7 @@ public class MainActivity extends ActionBarActivity implements SurfaceHolder.Cal
     }
 
 
-    private void sendText() {
-        String message = this.body.getText().toString();
 
-        String sent = "SMS_SENT";
-
-        PendingIntent sentPI = PendingIntent.getBroadcast(this, 0,
-                new Intent(sent), 0);
-
-        //---when the SMS has been sent---
-        registerReceiver(new BroadcastReceiver(){
-            @Override
-            public void onReceive(Context arg0, Intent arg1) {
-                if(getResultCode() == Activity.RESULT_OK)
-                {
-                    Toast.makeText(getBaseContext(), "SMS sent.",
-                            Toast.LENGTH_SHORT).show();
-                }
-                else
-                {
-                    Toast.makeText(getBaseContext(), "Sending failed.",
-                            Toast.LENGTH_SHORT).show();
-                }
-            }
-        }, new IntentFilter(sent));
-
-        SmsManager sms = SmsManager.getDefault();
-        sms.sendTextMessage(selectedNumber, null, message, sentPI, null);
-
-
-    }
 
     public void setAlpha(float alpha) {
         container.setAlpha(alpha);
@@ -258,6 +183,13 @@ public class MainActivity extends ActionBarActivity implements SurfaceHolder.Cal
     public void returnToInbox() {
         getFragmentManager().beginTransaction().remove(getFragmentManager().findFragmentByTag("thread")).commit();
         getFragmentManager().beginTransaction().show(getFragmentManager().findFragmentByTag("inbox")).commit();
+        ((InboxFragment)getFragmentManager().findFragmentByTag("inbox")).refresh();
+    }
+
+    public void refresh() {
+        if (getFragmentManager().findFragmentByTag("thread").isVisible()) {
+            ((MessageThreadFragment)getFragmentManager().findFragmentByTag("inbox")).refresh();
+        }
     }
 
     @Override
@@ -270,7 +202,24 @@ public class MainActivity extends ActionBarActivity implements SurfaceHolder.Cal
         super.onStart();
     }
 
+    @Override
+    public void onBackPressed() {
+        if (getFragmentManager().findFragmentByTag("thread") != null && getFragmentManager().findFragmentByTag("thread").isVisible()) {
+           //In this case, the edittext has focus and we want to go back to the inbox without popping the backstack, as it is already popped in the returnToInbox() method
+           if (!((MessageThreadFragment)getFragmentManager().findFragmentByTag("thread")).isKeyboardShowing()) {
+               returnToInbox();
+           }
+           //This will hide the keyboard in the message thread
+            else {
+               super.onBackPressed();
+           }
+        }
 
+        //Not in a message thread
+        else {
+            super.onBackPressed();
+        }
+    }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
@@ -293,15 +242,24 @@ public class MainActivity extends ActionBarActivity implements SurfaceHolder.Cal
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
+        try {
+            mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
+        } catch (Exception e) {
+            startActivity(new Intent(MainActivity.this, MainActivity.class));
+            finish();
+        }
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        mCamera.stopPreview();
-        mCamera.release();
-        mCamera = null;
-        isPreviewing = false;
+        try {
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
+            isPreviewing = false;
+        } catch (NullPointerException e) {
+            Log.d("VisionMail", "Error destroying camera surface: " + e.toString());
+        }
     }
 
 
@@ -316,7 +274,7 @@ public class MainActivity extends ActionBarActivity implements SurfaceHolder.Cal
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.send:
+            case R.id.alpha:
                 Dialog yourDialog = new Dialog(MainActivity.this);
                 LayoutInflater inflater = (LayoutInflater)MainActivity.this.getSystemService(LAYOUT_INFLATER_SERVICE);
                 View layout = inflater.inflate(R.layout.dialog_seekbar, (ViewGroup)findViewById(R.id.dialog_container));
@@ -363,97 +321,6 @@ public class MainActivity extends ActionBarActivity implements SurfaceHolder.Cal
 
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    public void PopulatePeopleList() {
-        mPeopleList.clear();
-        Cursor people = getContentResolver().query(
-                ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
-        while (people.moveToNext()) {
-            String contactName = people.getString(people
-                    .getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
-            String contactId = people.getString(people
-                    .getColumnIndex(ContactsContract.Contacts._ID));
-            String hasPhone = people
-                    .getString(people
-                            .getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER));
-
-            if ((Integer.parseInt(hasPhone) > 0)){
-                // You know have the number so now query it like this
-                Cursor phones = getContentResolver().query(
-                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                        null,
-                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID +" = "+ contactId,
-                        null, null);
-                while (phones.moveToNext()){
-                    //store numbers and display a dialog letting the user select which.
-                    String phoneNumber = phones.getString(
-                            phones.getColumnIndex(
-                                    ContactsContract.CommonDataKinds.Phone.NUMBER));
-                    String numberType = phones.getString(phones.getColumnIndex(
-                            ContactsContract.CommonDataKinds.Phone.TYPE));
-                    Map<String, String> NamePhoneType = new HashMap<String, String>();
-                    NamePhoneType.put("Name", contactName);
-                    NamePhoneType.put("Phone", formatPhoneNumber(phoneNumber));
-                    if(numberType.equals("0"))
-                        NamePhoneType.put("Type", "Work");
-                    else
-                    if(numberType.equals("1"))
-                        NamePhoneType.put("Type", "Home");
-                    else if(numberType.equals("2"))
-                        NamePhoneType.put("Type",  "Mobile");
-                    else
-                        NamePhoneType.put("Type", "Other");
-                    //Then add this map to the list.
-                    mPeopleList.add(NamePhoneType);
-                }
-                //phones.close();
-            }
-        }
-        //people.close();
-        startManagingCursor(people);
-    }
-
-    private String formatPhoneNumber(String number) {
-        if (number.substring(0, 2).equals("+1")) number = number.substring(2);
-//        number = number.replace("-", "");
-//        number = number.replace("(", "");
-        number.replaceAll("[-()]", "");
-
-        if (number.length() == 10) {
-            return "(" + number.substring(0, 3) + ") " + number.substring(3, 6) + "-" + number.substring(6);
-        }
-        else return number;
-    }
-
-
-    private class Contact {
-        String name, phone;
-
-        public Contact(String name, String phone) {
-            this.name = name;
-            this.phone = phone;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getPhone() {
-            return phone;
-        }
-
-        public void setPhone(String phone) {
-            this.phone = phone;
-        }
-
-        public String toString() {
-            return getName() + " (" + getPhone() + ")";
-        }
     }
 
 }

@@ -2,8 +2,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".MyActivity">
-    <item android:id="@+id/send"
-        android:title="Send"
+    <item android:id="@+id/alpha"
+        android:title="Change transparency"
         android:icon="@drawable/seekbar_icon"
         android:orderInCategory="100"
         app:showAsAction="always" />

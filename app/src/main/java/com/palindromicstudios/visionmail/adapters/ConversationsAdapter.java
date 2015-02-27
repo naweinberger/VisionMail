@@ -3,6 +3,7 @@ package com.palindromicstudios.visionmail.adapters;
 
 import android.app.Fragment;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -46,6 +47,13 @@ public class ConversationsAdapter extends RecyclerView.Adapter<ConversationHolde
         }
         holder.message.setText(dItem.getContent());
         holder.date.setText(dItem.getDate());
+
+        if (dItem.isRead()) {
+            holder.message.setTypeface(null, Typeface.NORMAL);
+        }
+        else {
+            holder.message.setTypeface(null, Typeface.BOLD);
+        }
 
         if (position % 2 == 0) {
             holder.container.setBackgroundColor(Color.parseColor("#e4e4e4"));

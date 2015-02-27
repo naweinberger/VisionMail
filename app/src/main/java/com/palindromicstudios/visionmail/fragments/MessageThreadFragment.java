@@ -1,12 +1,20 @@
 package com.palindromicstudios.visionmail.fragments;
 
 
+import android.app.Activity;
 import android.app.Fragment;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.telephony.SmsManager;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -16,6 +24,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import com.palindromicstudios.testapplication.R;
@@ -27,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Objects;
 
 
 /**
@@ -35,8 +47,16 @@ import java.util.Locale;
 public class MessageThreadFragment extends Fragment {
 
     String threadId = "";
+    String phone = "";
     RecyclerView recyclerView;
     RecyclerView.LayoutManager layoutManager;
+
+    final String MESSAGE_RECEIVED = "message_received";
+
+    EditText messageEdittext;
+    ImageButton messageSendBtn;
+
+    boolean keyboardDown = true;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -52,9 +72,10 @@ public class MessageThreadFragment extends Fragment {
 
 
         Bundle bundle = getArguments();
-        ArrayList<Message> messages = bundle.getParcelableArrayList("messages");
+        final ArrayList<Message> messages = bundle.getParcelableArrayList("messages");
 
         threadId = String.valueOf(messages.get(0).getThread());
+        phone = String.valueOf(messages.get(0).getPhone());
 
         recyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
         layoutManager = new LinearLayoutManager(getActivity());
@@ -67,6 +88,33 @@ public class MessageThreadFragment extends Fragment {
 
         refresh();
 
+        messageEdittext = (EditText) view.findViewById(R.id.message_edittext);
+        messageSendBtn = (ImageButton) view.findViewById(R.id.message_send_btn);
+        messageEdittext.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                keyboardDown = false;
+            }
+        });
+
+        messageSendBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String body = messageEdittext.getText().toString();
+                if (!body.isEmpty()) {
+                    if (!phone.isEmpty()) {
+                        sendText(body, phone);
+                    }
+                    else {
+                        Toast.makeText(getActivity(), "No recipient indicated.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                else {
+                    Log.i("VisionMail", "No message body.");
+                }
+            }
+        });
+
         view.setFocusableInTouchMode(true);
         view.requestFocus();
 
@@ -75,8 +123,16 @@ public class MessageThreadFragment extends Fragment {
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
                     if (keyCode == KeyEvent.KEYCODE_BACK) {
-                        getFragmentManager().popBackStack();
-                        ((MainActivity) getActivity()).returnToInbox();
+
+                        //If the keyboard is not showing, then pressing back should take the user back to the inbox
+                        if (keyboardDown) {
+                            ((MainActivity) getActivity()).returnToInbox();
+                        }
+                        //If the keyboard is showing, then hide the keyboard
+                        else {
+                            keyboardDown = true;
+                        }
+
                         return true;
                     }
                 }
@@ -84,10 +140,23 @@ public class MessageThreadFragment extends Fragment {
             }
         });
 
+        getActivity().registerReceiver(broadcastReceiver, new IntentFilter(MESSAGE_RECEIVED));
+
         return view;
     }
 
-    private void refresh() {
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            refresh();
+        }
+    };
+
+    public boolean isKeyboardShowing() {
+        return !keyboardDown;
+    }
+
+    public void refresh() {
         if (!threadId.isEmpty()) {
             ArrayList<Message> updatedList = refreshMessages(threadId);
             if (updatedList != null) {
@@ -104,7 +173,9 @@ public class MessageThreadFragment extends Fragment {
     public ArrayList<Message> refreshMessages(String threadId) {
         ArrayList<Message> result = new ArrayList<>();
         Uri uri = Uri.parse("content://sms/");
-        Cursor cursor = getActivity().getContentResolver().query(uri, null, ("thread_id = " + threadId), null, "date ASC");
+        Cursor cursor = getActivity().getContentResolver().query(uri, null, ("thread_id=" + threadId), null, "date ASC");
+
+        ArrayList<String> idsUnread = new ArrayList<String>();
 
         if (cursor.moveToFirst()) { // must check the result to prevent exception
             do {
@@ -117,6 +188,13 @@ public class MessageThreadFragment extends Fragment {
                 message.setPhone(cursor.getString(cursor.getColumnIndexOrThrow("address")));
                 message.setDate(getDate(cursor.getLong(cursor.getColumnIndexOrThrow("date"))));
                 message.setType(cursor.getInt(cursor.getColumnIndexOrThrow("type")));
+
+                if (cursor.getInt(cursor.getColumnIndex("read")) == 0) {
+                    String messageId = cursor.getString(cursor.getColumnIndex("_id"));
+                    idsUnread.add(messageId);
+                }
+
+
                 //message.setName(getContactName(this, cursor.getString(cursor.getColumnIndexOrThrow("address"))));
 
                 key = cursor.getInt(cursor.getColumnIndexOrThrow("thread_id"));
@@ -130,6 +208,17 @@ public class MessageThreadFragment extends Fragment {
                 //recyclerView.setAdapter(adapter);
             } while (cursor.moveToNext());
 
+            cursor.close();
+
+            Object[] ids = idsUnread.toArray();
+            for (Object id : ids) {
+                Log.d("UNREAD", (String)id);
+                ContentValues values = new ContentValues();
+                values.put("read",true);
+                int rowsUpdated = getActivity().getContentResolver().update(Uri.parse("content://sms/"),values, "_id=?", new String[]{id + ""});
+                Log.d("ROWS_UPDATED", "" + rowsUpdated);
+            }
+
             return result;
         }
         return null;
@@ -140,6 +229,31 @@ public class MessageThreadFragment extends Fragment {
         cal.setTimeInMillis(time);
         String date = DateFormat.format("MMM d", cal).toString();
         return date;
+    }
+
+    private void sendText(String message, String phoneNumber) {
+        String sent = "SMS_SENT";
+
+        PendingIntent sentPI = PendingIntent.getBroadcast(getActivity(), 0,
+                new Intent(sent), 0);
+
+        //---when the SMS has been sent---
+        getActivity().registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context arg0, Intent arg1) {
+                if (getResultCode() == Activity.RESULT_OK) {
+                    Toast.makeText(getActivity(), "SMS sent.", Toast.LENGTH_SHORT).show();
+                    messageEdittext.setText("");
+
+                } else {
+                    Toast.makeText(getActivity(), "Sending failed.",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+        }, new IntentFilter(sent));
+
+        SmsManager sms = SmsManager.getDefault();
+        sms.sendTextMessage(phoneNumber, null, message, sentPI, null);
     }
 
     @Override
@@ -155,5 +269,11 @@ public class MessageThreadFragment extends Fragment {
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onDetach() {
+        getActivity().unregisterReceiver(broadcastReceiver);
+        super.onDetach();
     }
 }

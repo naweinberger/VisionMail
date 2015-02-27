@@ -34,9 +34,11 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesHolder> {
         Message dItem = items.get(position);
         if (dItem.getType() == 1) {
             holder.name.setGravity(Gravity.LEFT);
+            //holder.name.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         }
         else {
             holder.name.setGravity(Gravity.RIGHT);
+            //holder.name.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
         }
         holder.name.setText(dItem.getContent());
 
@@ -51,7 +53,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesHolder> {
 
     @Override
     public MessagesHolder onCreateViewHolder(ViewGroup viewGroup, int position) {
-        View itemView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.conversation_item_layout, viewGroup, false);
+        View itemView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.message_item_layout, viewGroup, false);
         return new MessagesHolder(itemView);
     }
 

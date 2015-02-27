@@ -8,7 +8,7 @@ import android.os.Parcelable;
  */
 public class Message implements Parcelable {
     private String content, name, phone, date;
-    private int person, thread, type;
+    private int person, thread, type, read;
 
     public Message() {
         this("", 0, "");
@@ -22,6 +22,7 @@ public class Message implements Parcelable {
         this.person = in.readInt();
         this.thread = in.readInt();
         this.type = in.readInt();
+        this.read = in.readInt();
     }
 
 
@@ -87,6 +88,19 @@ public class Message implements Parcelable {
         this.type = type;
     }
 
+    public boolean isRead() {
+        return read == 0 ? false : true;
+    }
+
+    public void setRead(boolean read) {
+        if (read == true) this.read = 1;
+        else this.read = 0;
+    }
+
+    public void setRead(int read) {
+       this.read = read;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -101,6 +115,7 @@ public class Message implements Parcelable {
         dest.writeInt(person);
         dest.writeInt(thread);
         dest.writeInt(type);
+        dest.writeInt(read);
     }
 
     public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {

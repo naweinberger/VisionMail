@@ -1,7 +1,10 @@
 package com.palindromicstudios.visionmail.fragments;
 
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -13,9 +16,13 @@ import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import com.palindromicstudios.testapplication.R;
 import com.palindromicstudios.visionmail.adapters.ConversationsAdapter;
@@ -36,6 +43,17 @@ public class InboxFragment extends Fragment {
     public HashMap<Integer, ArrayList<Message>> conversations;
     FrameLayout container;
 
+    RecyclerView recyclerView;
+    RecyclerView.LayoutManager layoutManager;
+
+    final String MESSAGE_RECEIVED = "message_received";
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -44,12 +62,43 @@ public class InboxFragment extends Fragment {
 
         this.container = (FrameLayout) view.findViewById(R.id.inbox_container);
 
-        //setAlpha(0.4f);
-
-        RecyclerView recyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        recyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
+        layoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(layoutManager);
 
+        //Populate list of conversations
+        refresh();
+
+        view.setFocusableInTouchMode(true);
+        view.requestFocus();
+
+        view.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (keyCode == KeyEvent.KEYCODE_BACK) {
+                        getActivity().onBackPressed();
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+
+        getActivity().registerReceiver(broadcastReceiver, new IntentFilter(MESSAGE_RECEIVED));
+
+        return view;
+    }
+
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            refresh();
+            refresh();
+        }
+    };
+
+    public void refresh() {
         //A hashmap that stores each conversation thread according to a thread id
         conversations = new HashMap<Integer, ArrayList<Message>>();
 
@@ -70,6 +119,7 @@ public class InboxFragment extends Fragment {
                 message.setPhone(cursor.getString(cursor.getColumnIndexOrThrow("address")));
                 message.setDate(getDate(cursor.getLong(cursor.getColumnIndexOrThrow("date"))));
                 message.setType(cursor.getInt(cursor.getColumnIndexOrThrow("type")));
+                message.setRead(cursor.getInt(cursor.getColumnIndexOrThrow("read")));
                 //message.setName(getContactName(this, cursor.getString(cursor.getColumnIndexOrThrow("address"))));
 
                 key = cursor.getInt(cursor.getColumnIndexOrThrow("thread_id"));
@@ -123,24 +173,6 @@ public class InboxFragment extends Fragment {
         } else {
             // empty box, no SMS
         }
-
-        view.setFocusableInTouchMode(true);
-        view.requestFocus();
-
-        view.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (keyCode == KeyEvent.KEYCODE_BACK) {
-                        getActivity().onBackPressed();
-                        return true;
-                    }
-                }
-                return false;
-            }
-        });
-
-        return view;
     }
 
     public String getContactName(Context context, String phoneNumber) {
@@ -167,5 +199,26 @@ public class InboxFragment extends Fragment {
         cal.setTimeInMillis(time);
         String date = DateFormat.format("MMM d", cal).toString();
         return date;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.thread, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.refresh:
+                refresh();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onDetach() {
+        getActivity().unregisterReceiver(broadcastReceiver);
+        super.onDetach();
     }
 }
